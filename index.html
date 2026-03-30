@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blueberry Collector</title>
+  <style>
+    :root {
+      --bg-top: #f5efe3;
+      --bg-bottom: #d7e9f7;
+      --panel: rgba(255, 252, 245, 0.84);
+      --panel-strong: rgba(255, 252, 245, 0.94);
+      --ink: #273142;
+      --muted: #5d6b7b;
+      --accent: #2f5ea5;
+      --accent-2: #5ba85b;
+      --gold: #c18a24;
+      --shadow: rgba(39, 49, 66, 0.16);
+      --locked: #bfc8d3;
+      --rare: #c56a8d;
+      --epic: #7b5bd6;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Avenir Next", "Hiragino Sans", "Yu Gothic", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.75), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(91, 168, 91, 0.15), transparent 28%),
+        linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+    }
+
+    .wrap {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 24px 0 40px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(235, 244, 255, 0.86));
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: 28px;
+      box-shadow: 0 24px 64px var(--shadow);
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      line-height: 1;
+      letter-spacing: 0.02em;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 720px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 24px;
+    }
+
+    .stat-card,
+    .panel {
+      background: var(--panel);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.7);
+      border-radius: 22px;
+      box-shadow: 0 16px 48px var(--shadow);
+    }
+
+    .stat-card {
+      padding: 18px 20px;
+    }
+
+    .stat-label {
+      display: block;
+      font-size: 0.86rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: clamp(1.4rem, 3vw, 2.2rem);
+      font-weight: 700;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 20px;
+    }
+
+    .panel {
+      padding: 22px;
+    }
+
+    .panel h2 {
+      margin: 0 0 8px;
+      font-size: 1.3rem;
+    }
+
+    .panel p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .field {
+      text-align: center;
+      padding: 12px 0 6px;
+    }
+
+    .plant {
+      position: relative;
+      width: min(260px, 62vw);
+      aspect-ratio: 1;
+      margin: 0 auto 18px;
+      animation: bob 3.4s ease-in-out infinite;
+    }
+
+    .soil {
+      position: absolute;
+      inset: auto 15% 10% 15%;
+      height: 18%;
+      background: linear-gradient(180deg, #9c7448, #6a492b);
+      border-radius: 50%;
+      filter: drop-shadow(0 8px 8px rgba(83, 53, 27, 0.18));
+    }
+
+    .stem {
+      position: absolute;
+      left: 50%;
+      bottom: 22%;
+      width: 10px;
+      height: 38%;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: linear-gradient(180deg, #81bd67, #487a32);
+    }
+
+    .leaf {
+      position: absolute;
+      width: 22%;
+      height: 12%;
+      background: linear-gradient(135deg, #93cc6f, #4b8f42);
+      border-radius: 100% 0;
+      top: 46%;
+    }
+
+    .leaf.left {
+      left: 26%;
+      transform: rotate(-28deg);
+    }
+
+    .leaf.right {
+      right: 26%;
+      transform: scaleX(-1) rotate(-28deg);
+    }
+
+    .berry {
+      position: absolute;
+      width: 18%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.15) 26%, var(--berry-color) 32%, var(--berry-shadow));
+      box-shadow: 0 10px 16px rgba(60, 48, 110, 0.18);
+      transform-origin: center;
+      animation: grow 0.45s ease;
+    }
+
+    .berry::after {
+      content: "";
+      position: absolute;
+      inset: 16%;
+      border-radius: 50%;
+      border: 3px solid rgba(255, 255, 255, 0.24);
+    }
+
+    .berry-1 { top: 23%; left: 26%; }
+    .berry-2 { top: 20%; right: 26%; }
+    .berry-3 { top: 36%; left: 18%; }
+    .berry-4 { top: 38%; right: 18%; }
+    .berry-5 { top: 45%; left: 40%; }
+
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 16px;
+      padding: 14px 16px;
+      font: inherit;
+      font-weight: 700;
+      color: white;
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 20px rgba(39, 49, 66, 0.14);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .primary {
+      background: linear-gradient(135deg, #3b6dcb, #244991);
+    }
+
+    .secondary {
+      background: linear-gradient(135deg, #6cb86c, #3f8a3f);
+    }
+
+    .tertiary {
+      background: linear-gradient(135deg, #d59b38, #b17517);
+    }
+
+    .notice {
+      margin-top: 16px;
+      min-height: 1.6em;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .catalog-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      max-height: 620px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .berry-card {
+      background: var(--panel-strong);
+      border-radius: 18px;
+      padding: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.76);
+      min-height: 122px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .berry-card.locked {
+      color: var(--muted);
+      background: rgba(231, 235, 241, 0.72);
+    }
+
+    .berry-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .berry-name {
+      margin: 0;
+      font-size: 0.98rem;
+      line-height: 1.35;
+    }
+
+    .badge {
+      flex-shrink: 0;
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      color: white;
+    }
+
+    .common { background: var(--accent); }
+    .rare { background: var(--rare); }
+    .epic { background: var(--epic); }
+
+    .berry-meta {
+      margin-top: 10px;
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .locked-label {
+      font-weight: 700;
+      letter-spacing: 0.06em;
+    }
+
+    @keyframes bob {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    @keyframes grow {
+      from { transform: scale(0.55); opacity: 0.4; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    @media (max-width: 860px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .catalog-grid {
+        max-height: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <h1>Blueberry Collector</h1>
+      <p>ブルーベリーを育てて収穫し、お金をためて図鑑を埋める放置系ミニゲームです。新種を見つけるほど図鑑がにぎやかになります。</p>
+      <div class="stats">
+        <div class="stat-card">
+          <span class="stat-label">所持金</span>
+          <span class="stat-value" id="moneyValue">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">見つけた品種</span>
+          <span class="stat-value" id="discoveredValue">0 / 30</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">農夫</span>
+          <span class="stat-value" id="farmerValue">0</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">自動収入</span>
+          <span class="stat-value" id="autoValue">0 / 秒</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="layout">
+      <div class="panel">
+        <h2>畑</h2>
+        <p id="currentBerryText">まだ何も育っていません。種をまいて、新しい品種を見つけましょう。</p>
+
+        <div class="field">
+          <div class="plant" id="plant">
+            <div class="soil"></div>
+            <div class="stem"></div>
+            <div class="leaf left"></div>
+            <div class="leaf right"></div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="primary" id="growButton">育てる</button>
+          <button class="secondary" id="harvestButton" disabled>収穫する</button>
+          <button class="tertiary" id="farmerButton">農夫を雇う (20)</button>
+          <button class="primary" id="saveButton">進行を保存</button>
+        </div>
+
+        <div class="notice" id="notice">最初は「育てる」を押して始めます。</div>
+      </div>
+
+      <div class="panel">
+        <h2>ブルーベリー図鑑</h2>
+        <p>30種類の実在品種を収集できます。未発見の品種はシルエット表示のままです。</p>
+        <div class="catalog-grid" id="catalog"></div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const berryTypes = [
+      { name: "Bluecrop", family: "北部ハイブッシュ", rarity: "common", reward: 3, color: "#5d70db", shadow: "#2f3c8c" },
+      { name: "Duke", family: "北部ハイブッシュ", rarity: "common", reward: 4, color: "#7488ef", shadow: "#3a4ab0" },
+      { name: "Spartan", family: "北部ハイブッシュ", rarity: "common", reward: 4, color: "#6b7ce2", shadow: "#32419b" },
+      { name: "Patriot", family: "北部ハイブッシュ", rarity: "common", reward: 4, color: "#6f80d7", shadow: "#37448d" },
+      { name: "Elliott", family: "北部ハイブッシュ", rarity: "common", reward: 5, color: "#7985d8", shadow: "#3f4a96" },
+      { name: "Legacy", family: "北部ハイブッシュ", rarity: "common", reward: 5, color: "#6370c8", shadow: "#2c387e" },
+      { name: "Chandler", family: "北部ハイブッシュ", rarity: "rare", reward: 7, color: "#8a7bf2", shadow: "#5642be" },
+      { name: "Liberty", family: "北部ハイブッシュ", rarity: "common", reward: 5, color: "#5f75d2", shadow: "#30458c" },
+      { name: "Aurora", family: "北部ハイブッシュ", rarity: "rare", reward: 7, color: "#9a83ff", shadow: "#614bc4" },
+      { name: "Jersey", family: "北部ハイブッシュ", rarity: "common", reward: 4, color: "#6071bf", shadow: "#31407b" },
+      { name: "Berkeley", family: "北部ハイブッシュ", rarity: "common", reward: 4, color: "#6d82d9", shadow: "#3650a3" },
+      { name: "Toro", family: "北部ハイブッシュ", rarity: "common", reward: 5, color: "#7687f0", shadow: "#3f52b0" },
+      { name: "Northland", family: "ハーフハイブッシュ", rarity: "common", reward: 4, color: "#5b6bc6", shadow: "#2f397f" },
+      { name: "Northblue", family: "ハーフハイブッシュ", rarity: "rare", reward: 6, color: "#816df0", shadow: "#4d38ba" },
+      { name: "Northcountry", family: "ハーフハイブッシュ", rarity: "common", reward: 4, color: "#6773c5", shadow: "#374183" },
+      { name: "Sunshine Blue", family: "サザンハイブッシュ", rarity: "rare", reward: 7, color: "#8d7be9", shadow: "#5749b5" },
+      { name: "Misty", family: "サザンハイブッシュ", rarity: "common", reward: 5, color: "#7384de", shadow: "#3a4ca4" },
+      { name: "O'Neal", family: "サザンハイブッシュ", rarity: "rare", reward: 7, color: "#8a77ee", shadow: "#503eb7" },
+      { name: "Sharpblue", family: "サザンハイブッシュ", rarity: "common", reward: 5, color: "#6679d0", shadow: "#33428e" },
+      { name: "Biloxi", family: "サザンハイブッシュ", rarity: "rare", reward: 7, color: "#917ce3", shadow: "#5743ae" },
+      { name: "Powderblue", family: "ラビットアイ", rarity: "common", reward: 5, color: "#7085dc", shadow: "#4153a0" },
+      { name: "Tifblue", family: "ラビットアイ", rarity: "common", reward: 5, color: "#6480d3", shadow: "#364d90" },
+      { name: "Brightwell", family: "ラビットアイ", rarity: "common", reward: 5, color: "#5f77cb", shadow: "#35458a" },
+      { name: "Climax", family: "ラビットアイ", rarity: "common", reward: 5, color: "#7188da", shadow: "#4253a0" },
+      { name: "Premier", family: "ラビットアイ", rarity: "common", reward: 5, color: "#7384ca", shadow: "#445090" },
+      { name: "Gardenblue", family: "ラビットアイ", rarity: "rare", reward: 7, color: "#8678d7", shadow: "#5146a4" },
+      { name: "Columbus", family: "ラビットアイ", rarity: "common", reward: 6, color: "#7180c6", shadow: "#42508a" },
+      { name: "Pink Lemonade", family: "ラビットアイ", rarity: "epic", reward: 12, color: "#ff93b9", shadow: "#bb507b" },
+      { name: "Ochlockonee", family: "ラビットアイ", rarity: "rare", reward: 8, color: "#9179e1", shadow: "#5b47b0" },
+      { name: "Baldwin", family: "ラビットアイ", rarity: "rare", reward: 8, color: "#8a72d7", shadow: "#553f9e" }
+    ];
+
+    const state = {
+      money: 0,
+      discovered: [],
+      currentBerryIndex: null,
+      currentReward: 0,
+      farmers: 0
+    };
+
+    const plant = document.getElementById("plant");
+    const moneyValue = document.getElementById("moneyValue");
+    const discoveredValue = document.getElementById("discoveredValue");
+    const farmerValue = document.getElementById("farmerValue");
+    const autoValue = document.getElementById("autoValue");
+    const currentBerryText = document.getElementById("currentBerryText");
+    const notice = document.getElementById("notice");
+    const catalog = document.getElementById("catalog");
+    const growButton = document.getElementById("growButton");
+    const harvestButton = document.getElementById("harvestButton");
+    const farmerButton = document.getElementById("farmerButton");
+    const saveButton = document.getElementById("saveButton");
+
+    function rarityLabel(rarity) {
+      if (rarity === "epic") return "超レア";
+      if (rarity === "rare") return "レア";
+      return "通常";
+    }
+
+    function showNotice(text) {
+      notice.textContent = text;
+    }
+
+    function renderPlant() {
+      plant.querySelectorAll(".berry").forEach((node) => node.remove());
+
+      if (state.currentBerryIndex === null) {
+        return;
+      }
+
+      const berry = berryTypes[state.currentBerryIndex];
+      for (let i = 1; i <= 5; i += 1) {
+        const node = document.createElement("div");
+        node.className = `berry berry-${i}`;
+        node.style.setProperty("--berry-color", berry.color);
+        node.style.setProperty("--berry-shadow", berry.shadow);
+        plant.appendChild(node);
+      }
+    }
+
+    function renderCatalog() {
+      catalog.innerHTML = "";
+
+      berryTypes.forEach((berry, index) => {
+        const discovered = state.discovered.includes(index);
+        const card = document.createElement("article");
+        card.className = `berry-card${discovered ? "" : " locked"}`;
+
+        if (discovered) {
+          card.innerHTML = `
+            <div class="berry-top">
+              <h3 class="berry-name">${berry.name}</h3>
+              <span class="badge ${berry.rarity}">${rarityLabel(berry.rarity)}</span>
+            </div>
+            <div class="berry-meta">
+              系統: ${berry.family}<br>
+              収穫額: ${berry.reward}
+            </div>
+          `;
+        } else {
+          card.innerHTML = `
+            <div class="berry-top">
+              <h3 class="berry-name">???</h3>
+              <span class="locked-label">LOCKED</span>
+            </div>
+            <div class="berry-meta">新しい品種を見つけると解放されます。</div>
+          `;
+        }
+
+        catalog.appendChild(card);
+      });
+    }
+
+    function updateStats() {
+      moneyValue.textContent = state.money;
+      discoveredValue.textContent = `${state.discovered.length} / ${berryTypes.length}`;
+      farmerValue.textContent = state.farmers;
+      autoValue.textContent = `${state.farmers} / 秒`;
+      farmerButton.disabled = state.money < 20;
+    }
+
+    function updateCurrentBerryText() {
+      if (state.currentBerryIndex === null) {
+        currentBerryText.textContent = "まだ何も育っていません。種をまいて、新しい品種を見つけましょう。";
+        return;
+      }
+
+      const berry = berryTypes[state.currentBerryIndex];
+      currentBerryText.textContent = `${berry.name} (${berry.family}) が実りました。収穫すると ${state.currentReward} コイン獲得できます。`;
+    }
+
+    function saveGame() {
+      localStorage.setItem("blueberryCollectorSave", JSON.stringify(state));
+      showNotice("進行を保存しました。GitHub Pagesでも同じ端末なら続きから遊べます。");
+    }
+
+    function loadGame() {
+      const raw = localStorage.getItem("blueberryCollectorSave");
+      if (!raw) return;
+
+      try {
+        const parsed = JSON.parse(raw);
+        state.money = parsed.money || 0;
+        state.discovered = Array.isArray(parsed.discovered) ? parsed.discovered : [];
+        state.currentBerryIndex = Number.isInteger(parsed.currentBerryIndex) ? parsed.currentBerryIndex : null;
+        state.currentReward = parsed.currentReward || 0;
+        state.farmers = parsed.farmers || 0;
+      } catch (error) {
+        console.error("save load failed", error);
+      }
+    }
+
+    function refresh() {
+      renderPlant();
+      renderCatalog();
+      updateStats();
+      updateCurrentBerryText();
+      harvestButton.disabled = state.currentBerryIndex === null;
+    }
+
+    growButton.addEventListener("click", () => {
+      const index = Math.floor(Math.random() * berryTypes.length);
+      const berry = berryTypes[index];
+
+      state.currentBerryIndex = index;
+      state.currentReward = berry.reward;
+
+      if (!state.discovered.includes(index)) {
+        state.discovered.push(index);
+        showNotice(`新品種発見: ${berry.name} を図鑑に登録しました。`);
+      } else {
+        showNotice(`${berry.name} が育ちました。収穫してコインを増やしましょう。`);
+      }
+
+      refresh();
+    });
+
+    harvestButton.addEventListener("click", () => {
+      if (state.currentBerryIndex === null) return;
+
+      const berry = berryTypes[state.currentBerryIndex];
+      state.money += state.currentReward;
+      state.currentBerryIndex = null;
+      state.currentReward = 0;
+      showNotice(`${berry.name} を収穫して ${berry.reward} コイン獲得しました。`);
+      refresh();
+    });
+
+    farmerButton.addEventListener("click", () => {
+      if (state.money < 20) {
+        showNotice("農夫を雇うには 20 コイン必要です。");
+        return;
+      }
+
+      state.money -= 20;
+      state.farmers += 1;
+      showNotice(`農夫を1人雇いました。これで毎秒 ${state.farmers} コイン入ります。`);
+      refresh();
+    });
+
+    saveButton.addEventListener("click", saveGame);
+
+    setInterval(() => {
+      if (state.farmers <= 0) return;
+      state.money += state.farmers;
+      updateStats();
+    }, 1000);
+
+    window.addEventListener("beforeunload", saveGame);
+
+    loadGame();
+    refresh();
+  </script>
+</body>
+</html>
